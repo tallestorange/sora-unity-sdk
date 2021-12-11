@@ -58,6 +58,15 @@ void sora_set_on_remove_track(void* p,
   });
 }
 
+void sora_set_on_frame(void* p,
+                       frame_cb_t on_frame,
+                       void* userdata) {
+  auto sora = (sora::Sora*)p;
+  sora->SetOnFrame([on_frame, userdata](ptrid_t track_id, int width, int height) {
+    on_frame(track_id, width, height, userdata);
+  });
+}
+
 void sora_set_on_notify(void* p, notify_cb_t on_notify, void* userdata) {
   auto sora = (sora::Sora*)p;
   sora->SetOnNotify([on_notify, userdata](std::string json) {

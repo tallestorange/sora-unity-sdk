@@ -65,6 +65,9 @@ void Sora::SetOnAddTrack(std::function<void(ptrid_t)> on_add_track) {
 void Sora::SetOnRemoveTrack(std::function<void(ptrid_t)> on_remove_track) {
   on_remove_track_ = on_remove_track;
 }
+void Sora::SetOnFrame(std::function<void(ptrid_t, int, int)> on_frame) {
+  on_frame_ = on_frame;
+}
 void Sora::SetOnNotify(std::function<void(std::string)> on_notify) {
   on_notify_ = std::move(on_notify);
 }
@@ -164,6 +167,15 @@ void Sora::DoConnect(const sora_conf::internal::ConnectConfig& cc,
           // ここは Unity スレッドから呼ばれる
           if (on_remove_track_) {
             on_remove_track_(track_id);
+          }
+        });
+      },
+      [this](ptrid_t track_id, int width, int height) {
+        std::lock_guard<std::mutex> guard(event_mutex_);
+        event_queue_.push_back([this, track_id, width, height]() {
+          // ここは Unity スレッドから呼ばれる
+          if (on_frame_) {
+            on_frame_(track_id, width, height);
           }
         });
       }));

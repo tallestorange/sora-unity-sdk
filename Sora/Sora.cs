@@ -115,6 +115,7 @@ public class Sora : IDisposable
     IntPtr p;
     GCHandle onAddTrackHandle;
     GCHandle onRemoveTrackHandle;
+    GCHandle onFrameHandle;
     GCHandle onNotifyHandle;
     GCHandle onPushHandle;
     GCHandle onMessageHandle;
@@ -139,6 +140,13 @@ public class Sora : IDisposable
         if (onRemoveTrackHandle.IsAllocated)
         {
             onRemoveTrackHandle.Free();
+        }
+
+        if (onFrameHandle.IsAllocated)
+        {
+            // ここでDisposeするとエラーになる
+            // キャプチャデバイスのDestroyが終わってから呼ぶ必要あり
+            // onFrameHandle.Free();
         }
 
         if (onNotifyHandle.IsAllocated)
@@ -325,6 +333,29 @@ public class Sora : IDisposable
 
             onRemoveTrackHandle = GCHandle.Alloc(value);
             sora_set_on_remove_track(p, TrackCallback, GCHandle.ToIntPtr(onRemoveTrackHandle));
+        }
+    }
+
+    private delegate void FrameCallbackDelegate(uint track_id, int width, int height, IntPtr userdata);
+
+    [AOT.MonoPInvokeCallback(typeof(FrameCallbackDelegate))]
+    static private void FrameCallback(uint trackId, int width, int height, IntPtr userdata)
+    {
+        var callback = GCHandle.FromIntPtr(userdata).Target as Action<uint, int, int>;
+        callback(trackId, width, height);
+    }
+
+    public Action<uint, int, int> OnFrame
+    {
+        set
+        {
+            if (onFrameHandle.IsAllocated)
+            {
+                onFrameHandle.Free();
+            }
+
+            onFrameHandle = GCHandle.Alloc(value);
+            sora_set_on_frame(p, FrameCallback, GCHandle.ToIntPtr(onFrameHandle));
         }
     }
 
@@ -582,6 +613,8 @@ public class Sora : IDisposable
     private static extern void sora_set_on_add_track(IntPtr p, TrackCallbackDelegate on_add_track, IntPtr userdata);
     [DllImport(DllName)]
     private static extern void sora_set_on_remove_track(IntPtr p, TrackCallbackDelegate on_remove_track, IntPtr userdata);
+    [DllImport(DllName)]
+    private static extern void sora_set_on_frame(IntPtr p, FrameCallbackDelegate on_frame, IntPtr userdata);
     [DllImport(DllName)]
     private static extern void sora_set_on_notify(IntPtr p, NotifyCallbackDelegate on_notify, IntPtr userdata);
     [DllImport(DllName)]
