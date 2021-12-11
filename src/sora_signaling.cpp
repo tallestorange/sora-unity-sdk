@@ -225,8 +225,7 @@ void SoraSignaling::OnConnect(boost::system::error_code ec,
       state_ = State::Closed;
       config_.on_disconnect(
           (int)sora_conf::ErrorCode::WEBSOCKET_HANDSHAKE_FAILED,
-          "Failed Websocket handshake: last_ec=" + ec.message() +
-              " last_url=" + url);
+          "Failed Websocket handshake: last_url=" + url);
     }
     return;
   }
